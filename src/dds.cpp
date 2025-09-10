@@ -45,31 +45,20 @@ void dds::process_incoming()
 {
     while (!should_stop_)
     {
-        try
+        package p{};
+        p.read_from(in_);
+
+        if (p.sender == receiver_ && p.receiver == sender_ &&
+            p.cmd_set == CMDSET_DDS && p.cmd_id == CMDID_DDS_PUSH_MSG)
         {
-            package p{};
-            p.read_from(in_);
 
-            if (p.sender == receiver_ && p.receiver == sender_ &&
-                p.cmd_set == CMDSET_DDS && p.cmd_id == CMDID_DDS_PUSH_MSG)
+            uint8_t sub_mode;
+            uint8_t msg_id;
+            p >> sub_mode >> msg_id;
+
+            if (msg_id < subscriptions_.size())
             {
-
-                uint8_t sub_mode;
-                uint8_t msg_id;
-                p >> sub_mode >> msg_id;
-
-                if (msg_id < subscriptions_.size())
-                {
-                    subscriptions_[msg_id](p);
-                }
-            }
-        }
-        catch (const std::exception&)
-        {
-            // Handle read errors gracefully
-            if (!should_stop_)
-            {
-                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                subscriptions_[msg_id](p);
             }
         }
     }
